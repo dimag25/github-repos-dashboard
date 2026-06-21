@@ -193,19 +193,8 @@
     </div>
   </div>
 
-  <div class="section-title">🗂 Repositories <span class="line"></span></div>
-  <div class="controls">
-    <label class="search">
-      🔍 <input id="searchInput" type="text" placeholder="Search repositories…" />
-    </label>
-    <select class="sort" id="sortSelect">
-      <option value="pushed">Recently active</option>
-      <option value="created">Newest</option>
-      <option value="stars">Most stars</option>
-      <option value="name">Name (A–Z)</option>
-    </select>
-  </div>
-  <div class="chips" id="catChips" style="margin-bottom:18px;"></div>
+  <div class="section-title">🔥 Top 5 · Modified This Month <span class="line"></span></div>
+  <p style="color:var(--muted);font-size:13.5px;margin:-6px 0 18px;">The five most recently updated repositories in the last 30 days.</p>
   <div class="repos" id="repoGrid"></div>
 
   <footer class="foot">
@@ -536,6 +525,8 @@ const SNAPSHOT = [
 ];
 const USERNAME = "dimag25";
 const ACTIVE_DAYS = 365;
+const MODIFIED_DAYS = 30;
+const TOP_N = 5;
 
 /* GitHub's official language colors */
 const LANG_COLORS = {
@@ -564,9 +555,6 @@ function categorize(r) {
 
 /* ---------- State ---------- */
 let REPOS = [];
-let activeCat = "All";
-let query = "";
-let sortBy = "pushed";
 
 function normalize(list) {
   return list
@@ -704,38 +692,15 @@ function renderCharts() {
   });
 }
 
-/* ---------- Category chips ---------- */
-function renderChips() {
-  const cats = ["All", ...tally(REPOS, "category").map((c) => c[0])];
-  document.getElementById("catChips").innerHTML = cats
-    .map((c) => {
-      const count = c === "All" ? REPOS.length : REPOS.filter((r) => r.category === c).length;
-      return `<div class="chip ${c === activeCat ? "active" : ""}" data-cat="${c}">${c} <span style="opacity:.6">${count}</span></div>`;
-    })
-    .join("");
-  document.querySelectorAll(".chip").forEach((el) =>
-    el.addEventListener("click", () => { activeCat = el.dataset.cat; renderChips(); renderGrid(); })
-  );
-}
-
 /* ---------- Repo grid ---------- */
 function renderGrid() {
-  let list = REPOS.slice();
-  if (activeCat !== "All") list = list.filter((r) => r.category === activeCat);
-  if (query) {
-    const q = query.toLowerCase();
-    list = list.filter((r) => (r.name + " " + (r.description || "") + " " + (r.language || "")).toLowerCase().includes(q));
-  }
-  const sorters = {
-    pushed: (a, b) => new Date(b.pushed) - new Date(a.pushed),
-    created: (a, b) => new Date(b.created) - new Date(a.created),
-    stars: (a, b) => b.stars - a.stars || new Date(b.pushed) - new Date(a.pushed),
-    name: (a, b) => a.name.localeCompare(b.name),
-  };
-  list.sort(sorters[sortBy]);
+  const list = REPOS
+    .filter((r) => daysSince(r.pushed) <= MODIFIED_DAYS)
+    .sort((a, b) => new Date(b.pushed) - new Date(a.pushed))
+    .slice(0, TOP_N);
 
   const grid = document.getElementById("repoGrid");
-  if (!list.length) { grid.innerHTML = `<div class="empty">No repositories match your filters 🤷</div>`; return; }
+  if (!list.length) { grid.innerHTML = `<div class="empty">No repositories modified in the last ${MODIFIED_DAYS} days 🤷</div>`; return; }
 
   grid.innerHTML = list
     .map((r) => {
@@ -772,10 +737,8 @@ function escapeHtml(s) {
 }
 
 /* ---------- Wire up ---------- */
-function renderAll() { renderStats(); renderCharts(); renderChips(); renderGrid(); }
+function renderAll() { renderStats(); renderCharts(); renderGrid(); }
 
-document.getElementById("searchInput").addEventListener("input", (e) => { query = e.target.value; renderGrid(); });
-document.getElementById("sortSelect").addEventListener("change", (e) => { sortBy = e.target.value; renderGrid(); });
 document.getElementById("year").textContent = new Date().getFullYear();
 
 /* Initial render from snapshot */
