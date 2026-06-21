@@ -1,76 +1,806 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My GitHub Repositories</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            text-align: center;
-        }
-        h1 {
-            color: #333;
-        }
-        .container {
-            width: 80%;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .category {
-            background: #007bff;
-            color: white;
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 5px;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            padding: 8px;
-        }
-        a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dima Gurevich · GitHub Repos Dashboard</title>
+<meta name="description" content="An interactive dashboard visualizing my active GitHub repositories — tech stack, categories, and activity." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b1020;
+    --bg-2: #0e1530;
+    --card: rgba(255, 255, 255, 0.04);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text: #e8ecf6;
+    --muted: #97a3bd;
+    --accent: #7c5cff;
+    --accent-2: #2ee6c4;
+    --accent-3: #ff6ad5;
+    --good: #34d399;
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(124, 92, 255, 0.22), transparent 60%),
+      radial-gradient(1000px 600px at 100% 0%, rgba(46, 230, 196, 0.16), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, rgba(255, 106, 213, 0.14), transparent 55%),
+      var(--bg);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  /* Header */
+  header.hero {
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    padding: 26px; border-radius: 22px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(46,230,196,0.07));
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+  }
+  header.hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(600px 200px at 80% -40%, rgba(255,255,255,0.12), transparent 60%);
+    pointer-events: none;
+  }
+  .avatar {
+    width: 92px; height: 92px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    box-shadow: 0 10px 30px rgba(124,92,255,0.4);
+    background: #1b2545; object-fit: cover;
+  }
+  .hero-info h1 { margin: 0 0 6px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+  .hero-info p { margin: 0; color: var(--muted); font-size: 15px; max-width: 620px; }
+  .hero-badges { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .badge {
+    font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+    background: rgba(255,255,255,0.07); border: 1px solid var(--card-border);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .dot-live { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 rgba(52,211,153,0.7); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(52,211,153,0.6);} 70%{box-shadow:0 0 0 8px rgba(52,211,153,0);} 100%{box-shadow:0 0 0 0 rgba(52,211,153,0);} }
+  .grow { flex: 1; }
+  .gh-link {
+    text-decoration: none; font-weight: 600; font-size: 14px;
+    padding: 11px 18px; border-radius: 12px; white-space: nowrap;
+    background: linear-gradient(135deg, var(--accent), #5b7cff);
+    box-shadow: 0 10px 24px rgba(124,92,255,0.4); border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* Stat cards */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-top: 22px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 20px; position: relative; overflow: hidden; backdrop-filter: blur(8px);
+  }
+  .stat .k { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .stat .v { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
+  .stat .ico { position: absolute; top: 16px; right: 16px; font-size: 22px; opacity: 0.85; }
+  .stat .bar { height: 4px; border-radius: 999px; margin-top: 12px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  /* Sections */
+  .section-title { font-size: 18px; font-weight: 700; margin: 38px 0 16px; display: flex; align-items: center; gap: 10px; }
+  .section-title .line { flex: 1; height: 1px; background: var(--card-border); }
+
+  .charts { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 20px; backdrop-filter: blur(8px); box-shadow: var(--shadow);
+  }
+  .panel h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; }
+  .panel .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+  .chart-box { position: relative; height: 300px; }
+  .chart-box.tall { height: 320px; }
+  .full { grid-column: 1 / -1; }
+
+  /* Controls */
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 6px 0 18px; }
+  .search {
+    flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 11px 14px;
+  }
+  .search input { background: transparent; border: 0; outline: none; color: var(--text); font-size: 14px; width: 100%; font-family: inherit; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    cursor: pointer; user-select: none; font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--card-border); color: var(--muted); transition: all 0.15s;
+  }
+  .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .chip.active { color: #fff; background: linear-gradient(135deg, var(--accent), #5b7cff); border-color: transparent; }
+  select.sort {
+    background: var(--card); border: 1px solid var(--card-border); color: var(--text);
+    border-radius: 12px; padding: 11px 14px; font-size: 13px; font-weight: 600; outline: none; font-family: inherit; cursor: pointer;
+  }
+
+  /* Repo grid */
+  .repos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .repo {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 18px;
+    display: flex; flex-direction: column; gap: 12px; transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+    position: relative; overflow: hidden; text-decoration: none;
+  }
+  .repo::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--lang, var(--accent));
+  }
+  .repo:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.22); box-shadow: 0 22px 44px rgba(0,0,0,0.5); }
+  .repo .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .repo .name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; word-break: break-word; }
+  .repo .cat { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; background: rgba(255,255,255,0.07); border: 1px solid var(--card-border); }
+  .repo .desc { color: var(--muted); font-size: 13px; line-height: 1.5; flex: 1; }
+  .repo .meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+  .repo .meta .lang { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+  .lang-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--lang, var(--accent)); }
+  .repo .footer { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .repo .live-tag { font-size: 10.5px; font-weight: 700; color: var(--good); border: 1px solid rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); padding: 3px 8px; border-radius: 999px; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px; font-size: 15px; grid-column: 1/-1; }
+  footer.foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 50px; }
+  footer.foot a { color: var(--accent-2); text-decoration: none; }
+
+  @media (max-width: 820px) {
+    .charts { grid-template-columns: 1fr; }
+    .hero-info h1 { font-size: 24px; }
+  }
+</style>
 </head>
 <body>
+<div class="wrap">
 
-    <h1>Welcome to My GitHub Repositories</h1>
-
-    <div class="container">
-        <h2 class="category">🛠 DevOps</h2>
-        <ul>
-            <li><a href="https://github.com/YOUR_USERNAME/devops-repo1">DevOps Repo 1</a></li>
-            <li><a href="https://github.com/YOUR_USERNAME/devops-repo2">DevOps Repo 2</a></li>
-        </ul>
-
-        <h2 class="category">⚡ Automation</h2>
-        <ul>
-            <li><a href="https://github.com/YOUR_USERNAME/automation-repo1">Automation Repo 1</a></li>
-            <li><a href="https://github.com/YOUR_USERNAME/automation-repo2">Automation Repo 2</a></li>
-        </ul>
-
-        <h2 class="category">🤖 AI</h2>
-        <ul>
-            <li><a href="https://github.com/YOUR_USERNAME/ai-repo1">AI Repo 1</a></li>
-            <li><a href="https://github.com/YOUR_USERNAME/ai-repo2">AI Repo 2</a></li>
-        </ul>
-
-        <h2 class="category">☁ Cloud</h2>
-        <ul>
-            <li><a href="https://github.com/YOUR_USERNAME/cloud-repo1">Cloud Repo 1</a></li>
-            <li><a href="https://github.com/YOUR_USERNAME/cloud-repo2">Cloud Repo 2</a></li>
-        </ul>
+  <header class="hero">
+    <img class="avatar" src="https://github.com/dimag25.png" alt="Dima Gurevich" />
+    <div class="hero-info grow">
+      <h1>Dima Gurevich — Build Log</h1>
+      <p>A living dashboard of my GitHub projects. QA automation, AI apps, and DevOps experiments — visualized by tech stack, category, and activity over the past year.</p>
+      <div class="hero-badges">
+        <span class="badge"><span class="dot-live"></span> <span id="liveStatus">Live from GitHub API</span></span>
+        <span class="badge">📦 <span id="repoCountBadge">—</span> repos</span>
+        <span class="badge">🕒 Updated <span id="syncTime">just now</span></span>
+      </div>
     </div>
+    <a class="gh-link" href="https://github.com/dimag25" target="_blank" rel="noopener">View Profile ↗</a>
+  </header>
 
+  <div class="stats" id="statCards"></div>
+
+  <div class="section-title">📊 Insights <span class="line"></span></div>
+  <div class="charts">
+    <div class="panel">
+      <h3>Tech Stack</h3>
+      <div class="sub">Primary language across projects</div>
+      <div class="chart-box"><canvas id="langChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Project Categories</h3>
+      <div class="sub">Auto-classified by name &amp; description</div>
+      <div class="chart-box"><canvas id="catChart"></canvas></div>
+    </div>
+    <div class="panel full">
+      <h3>Activity Timeline</h3>
+      <div class="sub">Projects created vs. last updated, by year</div>
+      <div class="chart-box tall"><canvas id="timeChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-title">🗂 Repositories <span class="line"></span></div>
+  <div class="controls">
+    <label class="search">
+      🔍 <input id="searchInput" type="text" placeholder="Search repositories…" />
+    </label>
+    <select class="sort" id="sortSelect">
+      <option value="pushed">Recently active</option>
+      <option value="created">Newest</option>
+      <option value="stars">Most stars</option>
+      <option value="name">Name (A–Z)</option>
+    </select>
+  </div>
+  <div class="chips" id="catChips" style="margin-bottom:18px;"></div>
+  <div class="repos" id="repoGrid"></div>
+
+  <footer class="foot">
+    Built with ❤️ &amp; Chart.js · Data live from the
+    <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener">GitHub REST API</a> ·
+    © <span id="year"></span> Dima Gurevich
+  </footer>
+</div>
+
+<script>
+/* ---------- Embedded snapshot (renders instantly; refreshed live on load) ---------- */
+const SNAPSHOT = [
+  {
+    "name": "ai-tests-manager",
+    "description": "AI Test Manager is a web application designed to simplify the process of generating, running, and managing automated tests via openai api.",
+    "language": "JavaScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 21,
+    "created": "2024-05-18T15:14:04Z",
+    "pushed": "2026-06-20T04:23:09Z",
+    "url": "https://github.com/dimag25/ai-tests-manager",
+    "archived": false,
+    "size": 1009,
+    "license": "MIT",
+    "homepage": null
+  },
+  {
+    "name": "playwright-e2e",
+    "description": "Project for tests in Typescript via Playwright for free public application : https://www.saucedemo.com/",
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 7,
+    "created": "2021-11-29T16:16:06Z",
+    "pushed": "2026-06-19T17:21:45Z",
+    "url": "https://github.com/dimag25/playwright-e2e",
+    "archived": false,
+    "size": 1410,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "israel-business-ai-assistant",
+    "description": null,
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 1,
+    "created": "2026-06-16T18:23:12Z",
+    "pushed": "2026-06-17T16:39:15Z",
+    "url": "https://github.com/dimag25/israel-business-ai-assistant",
+    "archived": false,
+    "size": 127,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "playertwin",
+    "description": "PlayerTwin youth football AI app",
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2026-06-05T15:04:34Z",
+    "pushed": "2026-06-12T18:48:40Z",
+    "url": "https://github.com/dimag25/playertwin",
+    "archived": false,
+    "size": 6017,
+    "license": null,
+    "homepage": "https://playertwin-web.vercel.app"
+  },
+  {
+    "name": "PlayerTwinMVP",
+    "description": null,
+    "language": "JavaScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2026-05-24T19:01:56Z",
+    "pushed": "2026-06-02T09:59:02Z",
+    "url": "https://github.com/dimag25/PlayerTwinMVP",
+    "archived": false,
+    "size": 1084,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "vmware-vshpere-project",
+    "description": null,
+    "language": null,
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2025-07-15T12:46:39Z",
+    "pushed": "2025-07-16T10:23:50Z",
+    "url": "https://github.com/dimag25/vmware-vshpere-project",
+    "archived": false,
+    "size": 650,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "playwright-ts-allure-demos",
+    "description": null,
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2025-07-15T12:47:00Z",
+    "pushed": "2025-07-16T10:17:56Z",
+    "url": "https://github.com/dimag25/playwright-ts-allure-demos",
+    "archived": false,
+    "size": 96,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "github-repos-dashboard",
+    "description": null,
+    "language": "HTML",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2025-02-20T13:46:44Z",
+    "pushed": "2025-02-20T13:52:21Z",
+    "url": "https://github.com/dimag25/github-repos-dashboard",
+    "archived": false,
+    "size": 1,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "AutoTestGen",
+    "description": null,
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-11-24T17:13:35Z",
+    "pushed": "2024-11-24T17:13:56Z",
+    "url": "https://github.com/dimag25/AutoTestGen",
+    "archived": false,
+    "size": 1704,
+    "license": null,
+    "homepage": "replit.com/@gurevich89/AutoTestGen"
+  },
+  {
+    "name": "AutoTestScriptGenerator",
+    "description": null,
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-11-20T18:06:45Z",
+    "pushed": "2024-11-20T18:14:35Z",
+    "url": "https://github.com/dimag25/AutoTestScriptGenerator",
+    "archived": false,
+    "size": 860,
+    "license": null,
+    "homepage": "replit.com/@gurevich89/AutoTestScriptGenerator"
+  },
+  {
+    "name": "TestGenie",
+    "description": null,
+    "language": "Python",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-11-07T16:31:12Z",
+    "pushed": "2024-11-17T10:31:50Z",
+    "url": "https://github.com/dimag25/TestGenie",
+    "archived": false,
+    "size": 2047,
+    "license": null,
+    "homepage": "replit.com/@gurevich89/TestGenie"
+  },
+  {
+    "name": "AutoTestScriptGen",
+    "description": null,
+    "language": "TypeScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-11-17T07:53:23Z",
+    "pushed": "2024-11-17T08:04:12Z",
+    "url": "https://github.com/dimag25/AutoTestScriptGen",
+    "archived": false,
+    "size": 1807,
+    "license": null,
+    "homepage": "replit.com/@gurevich89/AutoTestScriptGen"
+  },
+  {
+    "name": "TravelAIPlanner",
+    "description": "Web-based travel planning application that generates personalized trip itineraries using AI assistance.",
+    "language": "Python",
+    "stars": 0,
+    "forks": 0,
+    "issues": 1,
+    "created": "2024-11-11T15:27:25Z",
+    "pushed": "2026-06-20T04:41:31Z",
+    "url": "https://github.com/dimag25/TravelAIPlanner",
+    "archived": false,
+    "size": 1455,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "PlaywrightJavaE2E",
+    "description": "Project for tests in Java based on Playwright&TestNG for free public API endpoints & Web UI Apps.",
+    "language": "Java",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-05-06T12:44:34Z",
+    "pushed": "2024-05-09T17:12:07Z",
+    "url": "https://github.com/dimag25/PlaywrightJavaE2E",
+    "archived": false,
+    "size": 2895,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "laptop_monitor_py",
+    "description": "Project for measure and characterize the performance and resources consumption of my laptop.",
+    "language": "Python",
+    "stars": 1,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-03-25T15:20:57Z",
+    "pushed": "2024-03-25T15:42:44Z",
+    "url": "https://github.com/dimag25/laptop_monitor_py",
+    "archived": false,
+    "size": 7,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "pytest-apps",
+    "description": null,
+    "language": "Python",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2024-03-04T09:34:07Z",
+    "pushed": "2024-03-04T17:40:25Z",
+    "url": "https://github.com/dimag25/pytest-apps",
+    "archived": false,
+    "size": 12,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "pytest-api-gorest",
+    "description": "Project for tests in pytest for free public API endpoint.",
+    "language": "Python",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2021-02-05T11:39:36Z",
+    "pushed": "2024-02-18T08:07:52Z",
+    "url": "https://github.com/dimag25/pytest-api-gorest",
+    "archived": false,
+    "size": 24,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "designs-bestPractices",
+    "description": null,
+    "language": null,
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2021-11-29T16:20:52Z",
+    "pushed": "2021-11-29T16:27:42Z",
+    "url": "https://github.com/dimag25/designs-bestPractices",
+    "archived": false,
+    "size": 3642,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "cypressAutomation-dima",
+    "description": null,
+    "language": "JavaScript",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2021-11-04T13:18:43Z",
+    "pushed": "2021-11-04T14:47:19Z",
+    "url": "https://github.com/dimag25/cypressAutomation-dima",
+    "archived": false,
+    "size": 1226,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "PythonWebApp-Dockerized",
+    "description": "Python movie web application +  docker.",
+    "language": "Python",
+    "stars": 0,
+    "forks": 0,
+    "issues": 0,
+    "created": "2020-10-03T15:25:08Z",
+    "pushed": "2021-03-21T16:00:09Z",
+    "url": "https://github.com/dimag25/PythonWebApp-Dockerized",
+    "archived": false,
+    "size": 28066,
+    "license": null,
+    "homepage": null
+  },
+  {
+    "name": "B.S.C-Degree-Final-Project",
+    "description": "Real-time infant physiological measure monitoring system using video footage",
+    "language": "C++",
+    "stars": 2,
+    "forks": 0,
+    "issues": 0,
+    "created": "2020-10-09T08:57:45Z",
+    "pushed": "2020-10-11T11:05:20Z",
+    "url": "https://github.com/dimag25/B.S.C-Degree-Final-Project",
+    "archived": false,
+    "size": 30461,
+    "license": null,
+    "homepage": null
+  }
+];
+const USERNAME = "dimag25";
+const ACTIVE_DAYS = 365;
+
+/* GitHub's official language colors */
+const LANG_COLORS = {
+  JavaScript: "#f1e05a", TypeScript: "#3178c6", Python: "#3572A5", Java: "#b07219",
+  "C++": "#f34b7d", HTML: "#e34c26", CSS: "#563d7c", Shell: "#89e051", Go: "#00ADD8",
+  Ruby: "#701516", Rust: "#dea584", "C#": "#178600", PHP: "#4F5D95", Dockerfile: "#384d54",
+  Vue: "#41b883", Svelte: "#ff3e00", Jupyter: "#DA5B0B", Kotlin: "#A97BFF", Other: "#8b95ad"
+};
+const langColor = (l) => LANG_COLORS[l] || LANG_COLORS.Other;
+
+const CAT_COLORS = {
+  "Testing / QA": "#2ee6c4", "AI / ML": "#ff6ad5", "DevOps / Cloud": "#5b7cff",
+  "Web / App": "#ffb454", "Systems": "#34d399", "Other": "#8b95ad"
+};
+
+/* Auto-classify a repo into a category from its signals */
+function categorize(r) {
+  const t = ((r.name || "") + " " + (r.description || "") + " " + (r.language || "")).toLowerCase();
+  if (/test|playwright|cypress|pytest|e2e|allure|\bqa\b|selenium|testng/.test(t)) return "Testing / QA";
+  if (/\bai\b|gpt|openai|llm|genie|twin|assistant|planner|ml\b|neural/.test(t)) return "AI / ML";
+  if (/docker|vmware|vsphere|cloud|k8s|kube|devops|terraform|monitor|ci\/cd|pipeline/.test(t)) return "DevOps / Cloud";
+  if (/web|app|dashboard|site|frontend|movie/.test(t)) return "Web / App";
+  if (/c\+\+|cpp|monitor|embedded|system|degree/.test(t)) return "Systems";
+  return "Other";
+}
+
+/* ---------- State ---------- */
+let REPOS = [];
+let activeCat = "All";
+let query = "";
+let sortBy = "pushed";
+
+function normalize(list) {
+  return list
+    .filter((r) => !r.fork && !r.archived)
+    .map((r) => ({
+      name: r.name,
+      description: r.description,
+      language: r.language,
+      stars: r.stargazers_count ?? r.stars ?? 0,
+      forks: r.forks_count ?? r.forks ?? 0,
+      issues: r.open_issues_count ?? r.issues ?? 0,
+      created: r.created_at ?? r.created,
+      pushed: r.pushed_at ?? r.pushed,
+      url: r.html_url ?? r.url,
+      homepage: r.homepage || null,
+      size: r.size ?? 0,
+      license: (r.license && (r.license.spdx_id || r.license)) || null,
+      category: categorize(r),
+    }));
+}
+
+const daysSince = (d) => (Date.now() - new Date(d).getTime()) / 86400000;
+const isActive = (r) => daysSince(r.pushed) <= ACTIVE_DAYS;
+
+function relTime(d) {
+  const days = Math.floor(daysSince(d));
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return days + "d ago";
+  if (days < 365) return Math.floor(days / 30) + "mo ago";
+  return Math.floor(days / 365) + "y ago";
+}
+
+/* ---------- Stat cards ---------- */
+function renderStats() {
+  const active = REPOS.filter(isActive);
+  const stars = REPOS.reduce((s, r) => s + r.stars, 0);
+  const langs = new Set(REPOS.map((r) => r.language).filter(Boolean));
+  const cats = new Set(REPOS.map((r) => r.category));
+  const cards = [
+    { k: "Active Repos · last yr", v: active.length, ico: "🔥" },
+    { k: "Total Repositories", v: REPOS.length, ico: "📦" },
+    { k: "Languages Used", v: langs.size, ico: "🧩" },
+    { k: "Project Categories", v: cats.size, ico: "🗂" },
+    { k: "Total Stars", v: stars, ico: "⭐" },
+  ];
+  document.getElementById("statCards").innerHTML = cards
+    .map((c) => `<div class="stat"><div class="ico">${c.ico}</div><div class="k">${c.k}</div><div class="v">${c.v}</div><div class="bar"></div></div>`)
+    .join("");
+  document.getElementById("repoCountBadge").textContent = REPOS.length;
+}
+
+/* ---------- Charts ---------- */
+let charts = {};
+Chart.defaults.color = "#97a3bd";
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 12;
+
+function tally(arr, key) {
+  const m = {};
+  arr.forEach((r) => { const k = r[key] || "Other"; m[k] = (m[k] || 0) + 1; });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+
+function renderCharts() {
+  Object.values(charts).forEach((c) => c && c.destroy());
+
+  /* Languages doughnut */
+  const langs = tally(REPOS.filter((r) => r.language), "language");
+  charts.lang = new Chart(document.getElementById("langChart"), {
+    type: "doughnut",
+    data: {
+      labels: langs.map((l) => l[0]),
+      datasets: [{
+        data: langs.map((l) => l[1]),
+        backgroundColor: langs.map((l) => langColor(l[0])),
+        borderColor: "rgba(11,16,32,0.9)", borderWidth: 3, hoverOffset: 10,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false, cutout: "62%",
+      plugins: { legend: { position: "right", labels: { boxWidth: 12, padding: 12 } } },
+    },
+  });
+
+  /* Categories bar */
+  const cats = tally(REPOS, "category");
+  charts.cat = new Chart(document.getElementById("catChart"), {
+    type: "bar",
+    data: {
+      labels: cats.map((c) => c[0]),
+      datasets: [{
+        data: cats.map((c) => c[1]),
+        backgroundColor: cats.map((c) => CAT_COLORS[c[0]] || "#8b95ad"),
+        borderRadius: 8, barThickness: 26,
+      }],
+    },
+    options: {
+      indexAxis: "y", maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.06)" }, ticks: { precision: 0 }, beginAtZero: true },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+
+  /* Timeline: created vs updated by year */
+  const years = {};
+  REPOS.forEach((r) => {
+    const cy = new Date(r.created).getFullYear();
+    const py = new Date(r.pushed).getFullYear();
+    years[cy] = years[cy] || { c: 0, p: 0 };
+    years[py] = years[py] || { c: 0, p: 0 };
+    years[cy].c++; years[py].p++;
+  });
+  const yk = Object.keys(years).sort();
+  charts.time = new Chart(document.getElementById("timeChart"), {
+    type: "line",
+    data: {
+      labels: yk,
+      datasets: [
+        { label: "Created", data: yk.map((y) => years[y].c), borderColor: "#7c5cff", backgroundColor: "rgba(124,92,255,0.18)", fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: "#7c5cff", borderWidth: 3 },
+        { label: "Last active", data: yk.map((y) => years[y].p), borderColor: "#2ee6c4", backgroundColor: "rgba(46,230,196,0.12)", fill: true, tension: 0.35, pointRadius: 4, pointBackgroundColor: "#2ee6c4", borderWidth: 3 },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "top", labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.06)" } },
+        y: { grid: { color: "rgba(255,255,255,0.06)" }, ticks: { precision: 0 }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+/* ---------- Category chips ---------- */
+function renderChips() {
+  const cats = ["All", ...tally(REPOS, "category").map((c) => c[0])];
+  document.getElementById("catChips").innerHTML = cats
+    .map((c) => {
+      const count = c === "All" ? REPOS.length : REPOS.filter((r) => r.category === c).length;
+      return `<div class="chip ${c === activeCat ? "active" : ""}" data-cat="${c}">${c} <span style="opacity:.6">${count}</span></div>`;
+    })
+    .join("");
+  document.querySelectorAll(".chip").forEach((el) =>
+    el.addEventListener("click", () => { activeCat = el.dataset.cat; renderChips(); renderGrid(); })
+  );
+}
+
+/* ---------- Repo grid ---------- */
+function renderGrid() {
+  let list = REPOS.slice();
+  if (activeCat !== "All") list = list.filter((r) => r.category === activeCat);
+  if (query) {
+    const q = query.toLowerCase();
+    list = list.filter((r) => (r.name + " " + (r.description || "") + " " + (r.language || "")).toLowerCase().includes(q));
+  }
+  const sorters = {
+    pushed: (a, b) => new Date(b.pushed) - new Date(a.pushed),
+    created: (a, b) => new Date(b.created) - new Date(a.created),
+    stars: (a, b) => b.stars - a.stars || new Date(b.pushed) - new Date(a.pushed),
+    name: (a, b) => a.name.localeCompare(b.name),
+  };
+  list.sort(sorters[sortBy]);
+
+  const grid = document.getElementById("repoGrid");
+  if (!list.length) { grid.innerHTML = `<div class="empty">No repositories match your filters 🤷</div>`; return; }
+
+  grid.innerHTML = list
+    .map((r) => {
+      const lc = langColor(r.language);
+      const homepage = r.homepage ? `<a href="${/^https?:/.test(r.homepage) ? r.homepage : "https://" + r.homepage}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--accent-2);text-decoration:none;font-weight:600">live ↗</a>` : "";
+      return `
+      <a class="repo" href="${r.url}" target="_blank" rel="noopener" style="--lang:${lc}">
+        <div class="top">
+          <div class="name">${r.name}</div>
+          <div class="cat" style="color:${CAT_COLORS[r.category]}">${r.category}</div>
+        </div>
+        <div class="desc">${r.description ? escapeHtml(r.description) : "<em style='opacity:.6'>No description provided.</em>"}</div>
+        <div class="meta">
+          ${r.language ? `<span class="lang"><span class="lang-dot"></span>${r.language}</span>` : ""}
+          <span>⭐ ${r.stars}</span>
+          <span>⑂ ${r.forks}</span>
+          ${r.issues ? `<span>◔ ${r.issues} open</span>` : ""}
+          ${r.license ? `<span>⚖ ${r.license}</span>` : ""}
+        </div>
+        <div class="footer">
+          <span class="mono">↻ ${relTime(r.pushed)}</span>
+          <span style="display:flex;gap:10px;align-items:center">
+            ${homepage}
+            ${isActive(r) ? `<span class="live-tag">ACTIVE</span>` : ""}
+          </span>
+        </div>
+      </a>`;
+    })
+    .join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---------- Wire up ---------- */
+function renderAll() { renderStats(); renderCharts(); renderChips(); renderGrid(); }
+
+document.getElementById("searchInput").addEventListener("input", (e) => { query = e.target.value; renderGrid(); });
+document.getElementById("sortSelect").addEventListener("change", (e) => { sortBy = e.target.value; renderGrid(); });
+document.getElementById("year").textContent = new Date().getFullYear();
+
+/* Initial render from snapshot */
+REPOS = normalize(SNAPSHOT);
+renderAll();
+
+/* Live refresh from the GitHub API */
+(async function liveRefresh() {
+  try {
+    const res = await fetch(`https://api.github.com/users/${USERNAME}/repos?per_page=100&sort=pushed`, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) {
+      REPOS = normalize(data);
+      renderAll();
+      document.getElementById("liveStatus").textContent = "Live · synced from GitHub";
+      document.getElementById("syncTime").textContent = "just now";
+    }
+  } catch (err) {
+    document.getElementById("liveStatus").textContent = "Showing latest snapshot";
+    document.getElementById("syncTime").textContent = "cached";
+  }
+})();
+</script>
 </body>
 </html>
