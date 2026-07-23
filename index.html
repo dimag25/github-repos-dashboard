@@ -92,6 +92,7 @@
   /* Sections */
   .section-title { font-size: 18px; font-weight: 700; margin: 38px 0 16px; display: flex; align-items: center; gap: 10px; }
   .section-title .line { flex: 1; height: 1px; background: var(--card-border); }
+  .section-copy { color: var(--muted); font-size: 13.5px; margin: -6px 0 18px; }
 
   .charts { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
   .panel {
@@ -143,6 +144,9 @@
   .lang-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--lang, var(--accent)); }
   .repo .footer { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .repo .live-tag { font-size: 10.5px; font-weight: 700; color: var(--good); border: 1px solid rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); padding: 3px 8px; border-radius: 999px; }
+  .repo .cv-tag { font-size: 10.5px; font-weight: 700; color: var(--accent-2); border: 1px solid rgba(46,230,196,0.3); background: rgba(46,230,196,0.08); padding: 3px 8px; border-radius: 999px; }
+  .repo .stack { display: flex; gap: 7px; flex-wrap: wrap; }
+  .repo .stack span { font-size: 11px; font-weight: 600; color: var(--muted); background: rgba(255,255,255,0.06); border: 1px solid var(--card-border); padding: 4px 8px; border-radius: 999px; }
   .mono { font-family: 'JetBrains Mono', monospace; }
 
   .empty { text-align: center; color: var(--muted); padding: 50px; font-size: 15px; grid-column: 1/-1; }
@@ -173,6 +177,10 @@
   </header>
 
   <div class="stats" id="statCards"></div>
+
+  <div class="section-title">Featured in CV <span class="line"></span></div>
+  <p class="section-copy">Selected automation, systems, and AI projects linked from my current CV.</p>
+  <div class="repos" id="featuredGrid"></div>
 
   <div class="section-title">📊 Insights <span class="line"></span></div>
   <div class="charts">
@@ -527,6 +535,29 @@ const USERNAME = "dimag25";
 const ACTIVE_DAYS = 365;
 const MODIFIED_DAYS = 30;
 const TOP_N = 5;
+const CV_PROJECTS = [
+  {
+    name: "Playwright E2E",
+    description: "TypeScript and Python framework with UI, API, visual, and accessibility tests, Docker, GitHub Actions, and MCP.",
+    url: "https://github.com/dimag25/playwright-e2e",
+    stack: ["TypeScript", "Python", "Playwright", "GitHub Actions"],
+    color: "#3178c6",
+  },
+  {
+    name: "Laptop Monitor",
+    description: "Python tool that tracks CPU, memory, disk, network, and process usage across Windows, macOS, and Linux.",
+    url: "https://github.com/dimag25/laptop_monitor_py",
+    stack: ["Python", "Monitoring", "Cross-platform"],
+    color: "#3572A5",
+  },
+  {
+    name: "AI Travel Planner",
+    description: "Flask and PostgreSQL app that generates AI-assisted itineraries with weather, maps, authentication, and sharing.",
+    url: "https://github.com/dimag25/TravelAIPlanner",
+    stack: ["Python", "Flask", "PostgreSQL", "OpenAI API"],
+    color: "#3572A5",
+  },
+];
 
 /* GitHub's official language colors */
 const LANG_COLORS = {
@@ -693,6 +724,26 @@ function renderCharts() {
 }
 
 /* ---------- Repo grid ---------- */
+function renderFeatured() {
+  document.getElementById("featuredGrid").innerHTML = CV_PROJECTS
+    .map((project) => `
+      <a class="repo" href="${project.url}" target="_blank" rel="noopener" style="--lang:${project.color}">
+        <div class="top">
+          <div class="name">${escapeHtml(project.name)}</div>
+          <span class="cv-tag">CV PROJECT</span>
+        </div>
+        <div class="desc">${escapeHtml(project.description)}</div>
+        <div class="stack">
+          ${project.stack.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}
+        </div>
+        <div class="footer">
+          <span>Open repository</span>
+          <span aria-hidden="true">View code &rarr;</span>
+        </div>
+      </a>`)
+    .join("");
+}
+
 function renderGrid() {
   const list = REPOS
     .filter((r) => daysSince(r.pushed) <= MODIFIED_DAYS)
@@ -737,7 +788,7 @@ function escapeHtml(s) {
 }
 
 /* ---------- Wire up ---------- */
-function renderAll() { renderStats(); renderCharts(); renderGrid(); }
+function renderAll() { renderStats(); renderCharts(); renderFeatured(); renderGrid(); }
 
 document.getElementById("year").textContent = new Date().getFullYear();
 
